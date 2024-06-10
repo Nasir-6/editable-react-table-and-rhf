@@ -10,6 +10,13 @@ import {
   RowData,
   flexRender,
 } from "@tanstack/react-table";
+import {
+  Controller,
+  FormProvider,
+  useFieldArray,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 
 type TDateTime = {
   date: string;
@@ -26,28 +33,22 @@ declare module "@tanstack/react-table" {
 }
 
 // Give our default column cell renderer editing superpowers!
+// useFormContext along with react-tables - cell row/columns to grab the values!!
 const defaultColumn: Partial<ColumnDef<TDateTime>> = {
-  cell: ({ getValue, row: { index }, column: { id }, table }) => {
-    const initialValue = getValue();
-    // We need to keep and update the state of the cell normally
-    const [value, setValue] = React.useState(initialValue);
-
-    // When the input is blurred, we'll call our table meta's updateData function
-    const onBlur = () => {
-      table.options.meta?.updateData(index, id, value);
-    };
-
-    // If the initialValue is changed external, sync it up with our state
-    React.useEffect(() => {
-      setValue(initialValue);
-    }, [initialValue]);
+  cell: ({ row: { index }, column: { id } }) => {
+    const { getValues } = useFormContext();
+    const defaultValue = getValues()["myData"][index][id];
 
     return (
-      <input
-        value={value as string}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={onBlur}
-      />
+      <>
+        <Controller
+          name={`myData.${index}.${id}`}
+          defaultValue={defaultValue}
+          // rules={{ required: { value: true, message: "field is required" } }}
+          render={({ field }) => <input {...field} />}
+        />
+        {/* {errors?.myData?.[index]?.[id].message} */}
+      </>
     );
   },
 };
@@ -81,8 +82,21 @@ function App() {
 
   const [data, setData] = React.useState(mockData);
 
+  const formMethods = useForm({
+    defaultValues: {
+      myData: data, // !NOTE: This name is used everywhere - look into how to get rid of it
+    },
+  });
+
+  const onSubmit = (data: { myData: TDateTime[] }) => console.log(data);
+
+  const { fields } = useFieldArray({
+    control: formMethods.control,
+    name: "myData", // !NOTE: This name is used everywhere - look into how to get rid of it
+  });
+
   const table = useReactTable({
-    data,
+    data: fields, // pass in fields from rhf to link up!
     columns,
     defaultColumn,
     getCoreRowModel: getCoreRowModel(),
@@ -104,46 +118,51 @@ function App() {
     },
     debugTable: true,
   });
+
   return (
     <div className="w-screen flex flex-col items-center justify-center">
       <h1 className=" text-red-500">TEST</h1>
-      <table>
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
+      <FormProvider {...formMethods}>
+        <form onSubmit={formMethods.handleSubmit(onSubmit)}>
+          <table>
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <th key={header.id}>
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => {
                 return (
-                  <th key={header.id}>
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                  </th>
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <td key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
                 );
               })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => {
-            console.log("row", row);
-            return (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => {
-                  return (
-                    <td key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+          <input type="submit" />
+        </form>
+      </FormProvider>
     </div>
   );
 }
