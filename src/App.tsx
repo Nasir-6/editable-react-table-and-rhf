@@ -41,6 +41,7 @@ const defaultColumn: Partial<ColumnDef<TDateTime>> = {
 
     return (
       <>
+        // TODO: Add Tooltip and red outline if error!!
         <Controller
           name={`myData.${index}.${id}`}
           defaultValue={defaultValue}
@@ -82,6 +83,7 @@ function App() {
 
   const [data, setData] = React.useState(mockData);
 
+  // TODO: Add zod schema here!!
   const formMethods = useForm({
     defaultValues: {
       myData: data, // !NOTE: This name is used everywhere - look into how to get rid of it
