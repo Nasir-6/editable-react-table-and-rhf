@@ -36,29 +36,30 @@ import TooltipInput from "./TooltipInput";
 // Give our default column cell renderer editing superpowers!
 // useFormContext along with react-tables - cell row/columns to grab the values!!
 const defaultColumn: Partial<ColumnDef<TDateTime>> = {
-  cell: ({ row: { index }, column: { id } }) => {
+  cell: ({
+    cell: { id: cellId },
+    row: { index },
+    column: { id: columnId },
+  }) => {
     const {
       getValues,
       formState: { errors },
     } = useFormContext<FormDataType>();
-    const defaultValue = getValues()[dataName][index][id];
-    const errMsg = errors?.[dataName]?.[index]?.[id]?.message;
+    const defaultValue = getValues()[dataName][index][columnId];
+    const errMsg = errors?.[dataName]?.[index]?.[columnId]?.message;
 
     return (
-      <>
+      <td key={cellId} className={`${errMsg && " border-2 border-red-500"}`}>
         <Controller
-          name={`${dataName}.${index}.${id}`}
+          name={`${dataName}.${index}.${columnId}`}
           defaultValue={defaultValue}
           render={({ field }) => (
             <TooltipInput content={errMsg}>
-              <input
-                {...field}
-                className={`${errMsg && "border border-red-500"}`}
-              />
+              <input {...field} />
             </TooltipInput>
           )}
         />
-      </>
+      </td>
     );
   },
 };
@@ -124,7 +125,7 @@ function App() {
         {/* Use FormProvider so can access rhf hooks/methods in nested components via useFormContext - avoids prop drilling!*/}
         <form onSubmit={formMethods.handleSubmit(onSubmit)}>
           {/* form cannot be a child of table - so do this way */}
-          <table>
+          <table className="border border-collapse">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -147,13 +148,13 @@ function App() {
                   <tr key={row.id}>
                     {row.getVisibleCells().map((cell) => {
                       return (
-                        <td key={cell.id}>
-                          {/* Use flexRender so can render an input fields (potentially with tooltips) - rather than just text */}
+                        <>
+                          {/* Use flexRender so can render an input fields (with tooltips) - rather than just text */}
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
                           )}
-                        </td>
+                        </>
                       );
                     })}
                   </tr>
