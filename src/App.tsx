@@ -99,6 +99,7 @@ function App() {
     },
     resolver: zodResolver(DateTimeSchema),
     mode: "onBlur",
+    reValidateMode: "onBlur",
   });
 
   const onSubmit = (data: FormDataType) => console.log(data);
