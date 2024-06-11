@@ -16,16 +16,14 @@ import {
   useForm,
   useFormContext,
 } from "react-hook-form";
+import {
+  DateTimeSchema,
+  FormDataType,
+  TDateTime,
+  dataName,
+} from "./types/schema";
 
-type TDateTime = {
-  date: string;
-  time1: string;
-  time2: string;
-  time3: string;
-  time4: string;
-};
-
-const dataName = "tableData"; // !Important - this name is used to hook up the forms/fields properly - hence extracted out into a variable!
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // !Note: No need for updateData TableMeta - as rhf is now controlling the state!
 // declare module "@tanstack/react-table" {
@@ -38,8 +36,12 @@ const dataName = "tableData"; // !Important - this name is used to hook up the f
 // useFormContext along with react-tables - cell row/columns to grab the values!!
 const defaultColumn: Partial<ColumnDef<TDateTime>> = {
   cell: ({ row: { index }, column: { id } }) => {
-    const { getValues } = useFormContext();
+    const {
+      getValues,
+      formState: { errors },
+    } = useFormContext<FormDataType>();
     const defaultValue = getValues()[dataName][index][id];
+    const errMsg = errors?.[dataName]?.[index]?.[id]?.message;
 
     return (
       <>
@@ -48,9 +50,14 @@ const defaultColumn: Partial<ColumnDef<TDateTime>> = {
           name={`${dataName}.${index}.${id}`}
           defaultValue={defaultValue}
           // rules={{ required: { value: true, message: "field is required" } }}
-          render={({ field }) => <input {...field} />}
+          render={({ field }) => (
+            <input
+              {...field}
+              className={`${errMsg && "border border-red-500"}`}
+            />
+          )}
         />
-        {/* {errors?.myData?.[index]?.[id].message} */}
+        {errMsg && errMsg}
       </>
     );
   },
@@ -85,14 +92,15 @@ function App() {
 
   const [data] = React.useState(mockData); // Can replace this with reactQuery for data! setData no longer needed as rhf deals with state!
 
-  // TODO: Add zod schema here!!
   const formMethods = useForm({
     defaultValues: {
       [dataName]: data, // !NOTE: This name is used everywhere - look into how to get rid of it
     },
+    resolver: zodResolver(DateTimeSchema),
+    mode: "onBlur",
   });
 
-  const onSubmit = (data: { [dataName]: TDateTime[] }) => console.log(data);
+  const onSubmit = (data: FormDataType) => console.log(data);
 
   // Using fieldArray as the table/form is dynamic - plus we want to keep track of all the dates/rows in their own object in a massive array
   // Have access to add/remove functions (desctructure like fields if you need it)
