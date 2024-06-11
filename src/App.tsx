@@ -24,6 +24,7 @@ import {
 } from "./types/schema";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import TooltipInput from "./TooltipInput";
 
 // !Note: No need for updateData TableMeta - as rhf is now controlling the state!
 // declare module "@tanstack/react-table" {
@@ -45,19 +46,18 @@ const defaultColumn: Partial<ColumnDef<TDateTime>> = {
 
     return (
       <>
-        {/* // TODO: Add Tooltip and red outline if error!! */}
         <Controller
           name={`${dataName}.${index}.${id}`}
           defaultValue={defaultValue}
-          // rules={{ required: { value: true, message: "field is required" } }}
           render={({ field }) => (
-            <input
-              {...field}
-              className={`${errMsg && "border border-red-500"}`}
-            />
+            <TooltipInput content={errMsg}>
+              <input
+                {...field}
+                className={`${errMsg && "border border-red-500"}`}
+              />
+            </TooltipInput>
           )}
         />
-        {errMsg && errMsg}
       </>
     );
   },
