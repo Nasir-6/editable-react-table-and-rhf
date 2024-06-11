@@ -99,7 +99,7 @@ function App() {
     },
     resolver: zodResolver(DateTimeSchema),
     mode: "onBlur",
-    reValidateMode: "onBlur",
+    reValidateMode: "onBlur", // This is the validation mode after submit - set to onblur to prevent rerendering during typing in an input
   });
 
   const onSubmit = (data: FormDataType) => console.log(data);
