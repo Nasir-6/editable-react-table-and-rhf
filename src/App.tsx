@@ -26,24 +26,27 @@ type TDateTime = {
   time4: string;
 };
 
-declare module "@tanstack/react-table" {
-  interface TableMeta<TData extends RowData> {
-    updateData: (rowIndex: number, columnId: string, value: unknown) => void;
-  }
-}
+const dataName = "tableData"; // !Important - this name is used to hook up the forms/fields properly - hence extracted out into a variable!
+
+// !Note: No need for updateData TableMeta - as rhf is now controlling the state!
+// declare module "@tanstack/react-table" {
+//   interface TableMeta<TData extends RowData> {
+//     updateData: (rowIndex: number, columnId: string, value: unknown) => void;
+//   }
+// }
 
 // Give our default column cell renderer editing superpowers!
 // useFormContext along with react-tables - cell row/columns to grab the values!!
 const defaultColumn: Partial<ColumnDef<TDateTime>> = {
   cell: ({ row: { index }, column: { id } }) => {
     const { getValues } = useFormContext();
-    const defaultValue = getValues()["myData"][index][id];
+    const defaultValue = getValues()[dataName][index][id];
 
     return (
       <>
-        // TODO: Add Tooltip and red outline if error!!
+        {/* // TODO: Add Tooltip and red outline if error!! */}
         <Controller
-          name={`myData.${index}.${id}`}
+          name={`${dataName}.${index}.${id}`}
           defaultValue={defaultValue}
           // rules={{ required: { value: true, message: "field is required" } }}
           render={({ field }) => <input {...field} />}
@@ -81,43 +84,29 @@ function App() {
     []
   );
 
-  const [data, setData] = React.useState(mockData);
+  const [data] = React.useState(mockData); // Can replace this with reactQuery for data! setData no longer needed as rhf deals with state!
 
   // TODO: Add zod schema here!!
   const formMethods = useForm({
     defaultValues: {
-      myData: data, // !NOTE: This name is used everywhere - look into how to get rid of it
+      [dataName]: data, // !NOTE: This name is used everywhere - look into how to get rid of it
     },
   });
 
-  const onSubmit = (data: { myData: TDateTime[] }) => console.log(data);
+  const onSubmit = (data: { [dataName]: TDateTime[] }) => console.log(data);
 
+  // Using fieldArray as the table/form is dynamic - plus we want to keep track of all the dates/rows in their own object in a massive array
+  // Have access to add/remove functions (desctructure like fields if you need it)
   const { fields } = useFieldArray({
     control: formMethods.control,
-    name: "myData", // !NOTE: This name is used everywhere - look into how to get rid of it
+    name: dataName, // !NOTE: This name is used everywhere - look into how to get rid of it
   });
 
   const table = useReactTable({
     data: fields, // pass in fields from rhf to link up!
     columns,
-    defaultColumn,
+    defaultColumn, // columns where cell is not defined uses defaultColumn! - which is the editable field in this case
     getCoreRowModel: getCoreRowModel(),
-    // Provide our updateData function to our table meta
-    meta: {
-      updateData: (rowIndex, columnId, value) => {
-        setData((old) =>
-          old.map((row, index) => {
-            if (index === rowIndex) {
-              return {
-                ...old[rowIndex]!,
-                [columnId]: value,
-              };
-            }
-            return row;
-          })
-        );
-      },
-    },
     debugTable: true,
   });
 
@@ -125,7 +114,9 @@ function App() {
     <div className="w-screen flex flex-col items-center justify-center">
       <h1 className=" text-red-500">TEST</h1>
       <FormProvider {...formMethods}>
+        {/* Use FormProvider so can access rhf hooks/methods in nested components via useFormContext - avoids prop drilling!*/}
         <form onSubmit={formMethods.handleSubmit(onSubmit)}>
+          {/* form cannot be a child of table - so do this way */}
           <table>
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -150,6 +141,7 @@ function App() {
                     {row.getVisibleCells().map((cell) => {
                       return (
                         <td key={cell.id}>
+                          {/* Use flexRender so can render an input fields (potentially with tooltips) - rather than just text */}
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
