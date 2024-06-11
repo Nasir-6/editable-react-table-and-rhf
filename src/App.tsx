@@ -7,7 +7,6 @@ import {
   useReactTable,
   getCoreRowModel,
   ColumnDef,
-  RowData,
   flexRender,
 } from "@tanstack/react-table";
 import {
